@@ -6,25 +6,34 @@ import { Game } from '../../entities/Game';
 import { IGamesRepository } from '../IGamesRepository';
 
 export class GamesRepository implements IGamesRepository {
-  private repository: Repository<Game>;
+    private repository: Repository<Game>;
 
-  constructor() {
-    this.repository = getRepository(Game);
-  }
+    constructor() {
+        this.repository = getRepository(Game);
+    }
 
-  async findByTitleContaining(param: string): Promise<Game[]> {
-    return this.repository
-      .createQueryBuilder()
-      // Complete usando query builder
-  }
+    async findByTitleContaining(param: string): Promise<Game[]> {
+        return this.repository
+            .createQueryBuilder("game")
+            .where(`LOWER(game.title) LIKE LOWER('%${param}%')`)
+            .getMany();
+    }
 
-  async countAllGames(): Promise<[{ count: string }]> {
-    return this.repository.query(); // Complete usando raw query
-  }
+    async countAllGames(): Promise<[{ count: string }]> {
+        return this.repository.query("SELECT COUNT(id) FROM games");
+    }
 
-  async findUsersByGameId(id: string): Promise<User[]> {
-    return this.repository
-      .createQueryBuilder()
-      // Complete usando query builder
-  }
+    async findUsersByGameId(id: string): Promise<User[]> {
+        const game = await this.repository
+            .createQueryBuilder("game")
+            .leftJoinAndSelect("game.users", "user")
+            .where("game.id=:id", { id })
+            .getOne();
+
+        if (!game) {
+            throw new Error(`Game with id=${id} not found.`);
+        }
+
+        return game.users;
+    }
 }
